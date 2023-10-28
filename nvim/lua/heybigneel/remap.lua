@@ -8,6 +8,8 @@ vim.g.maplocalleader = " "
 -- Remove highlighting
 keymap("n", "<ESC>", ":noh<CR>", opts)
 
+keymap("i", "jk", "<ESC>", opts)
+
 -- Better window navigation
 keymap("n", "<C-h>", "<C-w>h", opts)
 keymap("n", "<C-j>", "<C-w>j", opts)
@@ -72,4 +74,3 @@ keymap("n", "<leader>fc", "<cmd>Telescope grep_string<cr>", opts)
 -- Go
 keymap("n", "<leader>qp", ":GoTestFunc<CR>", opts)
 keymap("n", "<leader>ql", ":GoTestFile<CR>", opts)
-
