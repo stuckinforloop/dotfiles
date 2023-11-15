@@ -77,6 +77,10 @@ return {
 				}),
 				window = {
 					completion = cmp.config.window.bordered(),
+					documentation = cmp.config.window.bordered(),
+				},
+				experimental = {
+					ghost_text = true,
 				},
 			})
 
@@ -117,11 +121,11 @@ return {
 				vim.keymap.set("n", "<leader>vd", function()
 					vim.diagnostic.open_float()
 				end, opts)
-				vim.keymap.set("n", "<C-l>", function()
-					vim.diagnostic.goto_next()
+				vim.keymap.set("n", "<C-k>", function()
+					vim.diagnostic.goto_prev()
 				end, opts)
 				vim.keymap.set("n", "<C-j>", function()
-					vim.diagnostic.goto_prev()
+					vim.diagnostic.goto_next()
 				end, opts)
 			end)
 

@@ -23,7 +23,7 @@ keymap("n", "<leader>x", ":bd<CR>", opts)
 keymap("n", "<leader>af", "<C-^><CR>", opts)
 
 -- Open Explorer
-keymap("n", "<leader>la", ":Sex 75<CR>", opts)
+keymap("n", "sf", ":Sex 75<CR>", opts)
 
 -- Resize with arrows
 keymap("n", "<C-Up>", ":resize +2<CR>", opts)
@@ -68,8 +68,12 @@ keymap("n", ";o", ":Git push -u origin ", opts)
 
 -- Telescope
 keymap("n", "<leader>ff", "<cmd>Telescope find_files<cr>", opts)
-keymap("n", "<leader>gw", "<cmd>Telescope live_grep<cr>", opts)
+keymap("n", "<leader>fs", "<cmd>Telescope live_grep<cr>", opts)
 keymap("n", "<leader>fc", "<cmd>Telescope grep_string<cr>", opts)
+keymap("n", "<leader>fe", "<cmd>Telescope diagnostics<cr>", opts)
+keymap("n", "<leader>fe", "<cmd>Telescope diagnostics<cr>", opts)
+keymap("n", "<leader>fw", "<cmd>lua require('telescope').extensions.git_worktree.create_git_worktree()<CR>", opts)
+keymap("n", "<leader>fl", "<cmd>lua require('telescope').extensions.git_worktree.git_worktrees()<CR>", opts)
 
 -- Go
 keymap("n", "<leader>qp", ":GoTestFunc<CR>", opts)
