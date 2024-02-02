@@ -22,9 +22,6 @@ keymap("n", "<leader>x", ":bd<CR>", opts)
 -- Open alternate file
 keymap("n", "<leader>af", "<C-^><CR>", opts)
 
--- Open Explorer
-keymap("n", "sf", ":Sex 75<CR>", opts)
-
 -- Resize with arrows
 keymap("n", "<C-Up>", ":resize +2<CR>", opts)
 keymap("n", "<C-Down>", ":resize -2<CR>", opts)
@@ -43,6 +40,8 @@ keymap("v", ">", ">gv", opts)
 keymap("v", "<A-j>", ":m .+1<CR>==", opts)
 keymap("v", "<A-k>", ":m .-2<CR>==", opts)
 keymap("v", "p", '"_dP', opts)
+
+-- Copy to system clipboard
 
 -- Move text up and down
 keymap("x", "J", ":move '>+1<CR>gv-gv", opts)
@@ -72,9 +71,23 @@ keymap("n", "<leader>fs", "<cmd>Telescope live_grep<cr>", opts)
 keymap("n", "<leader>fc", "<cmd>Telescope grep_string<cr>", opts)
 keymap("n", "<leader>fe", "<cmd>Telescope diagnostics<cr>", opts)
 keymap("n", "<leader>fe", "<cmd>Telescope diagnostics<cr>", opts)
-keymap("n", "<leader>fw", "<cmd>lua require('telescope').extensions.git_worktree.create_git_worktree()<CR>", opts)
-keymap("n", "<leader>fl", "<cmd>lua require('telescope').extensions.git_worktree.git_worktrees()<CR>", opts)
+
+-- Git Worktree
+keymap("n", "<leader>wc", "<cmd>lua require('telescope').extensions.git_worktree.create_git_worktree()<CR>", opts)
+keymap("n", "<leader>wl", "<cmd>lua require('telescope').extensions.git_worktree.git_worktrees()<CR>", opts)
 
 -- Go
-keymap("n", "<leader>qp", ":GoTestFunc<CR>", opts)
-keymap("n", "<leader>ql", ":GoTestFile<CR>", opts)
+keymap("n", "<leader>al", ":GoTestFunc<CR>", opts)
+
+-- Terminal
+keymap("n", "<leader>t", ":terminal<CR>", opts)
+
+-- Rest
+keymap("n", "<leader>r", ":<cmd> lua require('rest-nvim').run()<CR>", opts)
+
+vim.api.nvim_create_autocmd("BufWritePost", {
+	pattern = "*.go",
+	callback = function()
+		vim.cmd("GoImport")
+	end,
+})

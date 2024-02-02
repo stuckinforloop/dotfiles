@@ -3,7 +3,6 @@ return {
 	dependencies = {
 		"xiyaowong/transparent.nvim",
 	},
-	priority = 1000,
 	config = function()
 		require("gruvbox").setup({
 			bold = true,
@@ -22,13 +21,20 @@ return {
 		})
 
 		function ColorMyPencils(color)
-			color = color or "gruvbox"
+			color = color or "habamax"
 			vim.cmd.colorscheme(color)
 
-			-- vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
-			-- vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
-			-- vim.api.nvim_set_hl(0, "Select", { bg = "none" })
-			require("transparent").setup()
+			vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
+			vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
+			vim.api.nvim_set_hl(0, "Select", { bg = "none" })
+			vim.api.nvim_set_hl(0, "WinSeparator", { bg = "none" })
+			vim.api.nvim_set_hl(0, "VertSplit", { bg = "none" })
+
+			require("transparent").setup({
+				extra_groups = {
+					"NormalFloat", -- plugins which have float panel such as Lazy, Mason, LspInfo
+				},
+			})
 		end
 		ColorMyPencils()
 	end,

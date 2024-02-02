@@ -39,6 +39,13 @@ return {
 					["<C-d>"] = cmp.mapping.scroll_docs(-4),
 					["<C-f>"] = cmp.mapping.scroll_docs(4),
 					["<C-Space>"] = cmp.mapping.complete(),
+					["<c-a>"] = cmp.mapping.complete({
+						config = {
+							sources = {
+								{ name = "cody" },
+							},
+						},
+					}),
 					["<C-e>"] = cmp.mapping.close(),
 					["<CR>"] = cmp.mapping.confirm({
 						behavior = cmp.ConfirmBehavior.Replace,
@@ -72,6 +79,7 @@ return {
 					}),
 				}),
 				sources = cmp.config.sources({
+					{ name = "cody" },
 					{ name = "nvim_lsp" },
 					{ name = "buffer" },
 				}),
@@ -136,6 +144,17 @@ return {
 					warn = "W",
 					hint = "H",
 					info = "I",
+				},
+			})
+
+			lsp_zero.format_on_save({
+				format_opts = {
+					async = false,
+					timeout_ms = 10000,
+				},
+				servers = {
+					["tsserver"] = { "javascript", "typescript" },
+					["rust_analyzer"] = { "rust" },
 				},
 			})
 

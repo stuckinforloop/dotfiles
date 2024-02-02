@@ -2,8 +2,9 @@ local wezterm = require("wezterm")
 
 return {
 	enable_tab_bar = false,
-	font = wezterm.font("MonoLisa Nerd Font Mono", { weight = 525 }),
-	font_size = 13.0,
+	font = wezterm.font("MonoLisa Nerd Font Mono", { weight = 700 }),
+	-- font_size = 14.0,
+	font_size = 17.0, -- monitor
 	line_height = 1.3,
 	color_scheme = "gruvbox_custom",
 	colors = {
