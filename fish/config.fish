@@ -4,11 +4,8 @@ source ~/.config/fish/alias.fish
 # bindings
 bind \cf tmux-sessionizer
 
-#personal
-source ~/.config/fish/personal.fish
-
-# funnelstory
-source ~/.config/fish/funnelstory.fish
+# env vars
+source ~/.config/fish/env_vars.fish
 
 zoxide init fish | source
 
