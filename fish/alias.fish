@@ -1,4 +1,4 @@
-alias ls="eza -l"
+alias ls="eza -l --git"
 alias ll="ls"
 alias cat="bat"
 alias vim="nvim"

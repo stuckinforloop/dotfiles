@@ -86,8 +86,8 @@ keymap("n", "<leader>t", ":terminal<CR>", opts)
 keymap("n", "<leader>r", ":<cmd> lua require('rest-nvim').run()<CR>", opts)
 
 vim.api.nvim_create_autocmd("BufWritePost", {
-	pattern = "*.go",
-	callback = function()
-		vim.cmd("GoImport")
-	end,
+    pattern = "*.go",
+    callback = function()
+        vim.cmd("GoImport")
+    end,
 })

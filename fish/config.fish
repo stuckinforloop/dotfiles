@@ -16,5 +16,8 @@ if not string match -q -- $PNPM_HOME $PATH
 end
 # pnpm end
 
+set -gx VOLTA_HOME "$HOME/.volta"
+set -gx PATH "$VOLTA_HOME/bin" $PATH
+
 # opam configuration
 source /Users/neel/.opam/opam-init/init.fish > /dev/null 2> /dev/null; or true
