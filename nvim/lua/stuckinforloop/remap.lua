@@ -51,10 +51,10 @@ keymap("x", "<A-k>", ":move '<-2<CR>gv-gv", opts)
 
 -- Harpoon
 keymap("n", "<leader>ha", ':lua require("harpoon.mark").add_file()<CR>', opts)
-keymap("n", "<leader>ho", ':lua require("harpoon.ui").toggle_quick_menu()<CR>', opts)
-keymap("n", "<leader>he", ':lua require("harpoon.ui").nav_file(1)<CR>', opts)
-keymap("n", "<leader>hl", ':lua require("harpoon.ui").nav_file(2)<CR>', opts)
-keymap("n", "<leader>hf", ':lua require("harpoon.ui").nav_file(3)<CR>', opts)
+keymap("n", "<leader>hl", ':lua require("harpoon.ui").toggle_quick_menu()<CR>', opts)
+keymap("n", "<leader>hf", ':lua require("harpoon.ui").nav_file(1)<CR>', opts)
+keymap("n", "<leader>hs", ':lua require("harpoon.ui").nav_file(2)<CR>', opts)
+keymap("n", "<leader>ht", ':lua require("harpoon.ui").nav_file(3)<CR>', opts)
 
 -- Git
 keymap("n", ";s", ":G<CR>", opts)
@@ -83,11 +83,14 @@ keymap("n", "<leader>al", ":GoTestFunc<CR>", opts)
 keymap("n", "<leader>t", ":terminal<CR>", opts)
 
 -- Rest
-keymap("n", "<leader>r", ":<cmd> lua require('rest-nvim').run()<CR>", opts)
+keymap("n", "<leader>r", "<cmd> lua require('rest-nvim').run()<CR>", opts)
+
+-- Lazy sync
+keymap("n", "<leader>ls", "<cmd> Lazy sync<CR>", opts)
 
 vim.api.nvim_create_autocmd("BufWritePost", {
     pattern = "*.go",
     callback = function()
-        vim.cmd("GoImport")
+        vim.cmd("GoImports")
     end,
 })

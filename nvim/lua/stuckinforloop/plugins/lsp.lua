@@ -140,6 +140,9 @@ return {
                 vim.keymap.set("i", "<C-k>", function()
                     vim.lsp.buf.signature_help()
                 end, opts)
+                vim.keymap.set("n", "<leader>ca", function()
+                    vim.lsp.buf.code_action()
+                end, opts)
                 vim.keymap.set("n", "<leader>vd", function()
                     vim.diagnostic.open_float()
                 end, opts)
@@ -199,9 +202,9 @@ return {
             })
 
             require("lspconfig").gopls.setup({
-                on_attach = function(client, bufnr)
-                    ih.on_attach(client, bufnr)
-                end,
+                -- on_attach = function(client, bufnr)
+                --     ih.on_attach(client, bufnr)
+                -- end,
                 settings = {
                     gopls = {
                         hints = {
@@ -220,12 +223,12 @@ return {
     },
 
     -- Signature
-    {
-        "ray-x/lsp_signature.nvim",
-        event = "VeryLazy",
-        opts = {},
-        config = function(_, opts)
-            require("lsp_signature").setup(opts)
-        end,
-    },
+    -- {
+    --     "ray-x/lsp_signature.nvim",
+    --     event = "VeryLazy",
+    --     opts = {},
+    --     config = function(_, opts)
+    --         require("lsp_signature").setup(opts)
+    --     end,
+    -- },
 }
