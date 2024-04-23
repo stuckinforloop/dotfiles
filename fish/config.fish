@@ -16,6 +16,7 @@ if not string match -q -- $PNPM_HOME $PATH
 end
 # pnpm end
 
+# volta
 set -gx VOLTA_HOME "$HOME/.volta"
 set -gx PATH "$VOLTA_HOME/bin" $PATH
 
@@ -28,3 +29,7 @@ source "$HOME/.cargo/env.fish"
 # bun
 set --export BUN_INSTALL "$HOME/.bun"
 set --export PATH $BUN_INSTALL/bin $PATH
+
+# go
+set -x GOPATH (go env GOPATH)
+set -x PATH $PATH (go env GOPATH)/bin
