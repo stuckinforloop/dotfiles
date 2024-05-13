@@ -3,15 +3,15 @@ font_family      Berkeley Mono
 bold_font        Berkeley Mono 
 italic_font      Berkeley Mono
 bold_italic_font Berkeley Mono
-font_size 19.0 
+font_size 15.0 
 disable_ligatures never
 # adjust_line_height 5
 
 # layout
 remember_window_size yes
 window_margin_width 20 24 20 24
-macos_titlebar_color dark
-# hide_window_decorations titlebar-only
+# macos_titlebar_color dark
+hide_window_decorations titlebar-only
 # background_opacity 0.90
 
 # perf baby
@@ -24,3 +24,5 @@ url_style curly
 macos_quit_when_last_window_closed yes
 macos_colorspace default
 
+
+include current_theme.conf

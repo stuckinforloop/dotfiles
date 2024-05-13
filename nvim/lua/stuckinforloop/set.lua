@@ -23,7 +23,7 @@ local options = {
     writebackup = false,                     -- if a file is being edited by another program (or was written to file while editing with another program), it is not allowed to be edited
     expandtab = true,                        -- convert tabs to spaces
     shiftwidth = 4,                          -- the number of spaces inserted for each indentation
-    tabstop = 4,                             -- insert 2 spaces for a tab
+    tabstop = 4,                             -- insert 4 spaces for a tab
     cursorline = false,                      -- highlight the current line
     number = false,                          -- set numbered lines
     relativenumber = false,                  -- set relative numbered lines
@@ -39,6 +39,7 @@ local options = {
 }
 
 vim.opt.shortmess:append("c")
+vim.opt.fillchars = { eob = " " }
 
 for k, v in pairs(options) do
     vim.opt[k] = v
