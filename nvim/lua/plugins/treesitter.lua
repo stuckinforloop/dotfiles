@@ -25,6 +25,8 @@ return {
                     "markdown",
                     "ocaml",
                     "ocaml_interface",
+                    "rust",
+                    "sql",
                 },
                 incremental_selection = {
                     enable = true,

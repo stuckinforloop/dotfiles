@@ -5,6 +5,7 @@ return {
         "nvim-telescope/telescope-file-browser.nvim",
         "nvim-lua/plenary.nvim",
         { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
+        { "kkharji/sqlite.lua" },
     },
     config = function()
         local telescope = require("telescope")

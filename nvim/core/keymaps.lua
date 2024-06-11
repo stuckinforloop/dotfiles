@@ -23,10 +23,10 @@ keymap("n", "<leader>x", ":bd<CR>", opts)
 keymap("n", "<leader>af", "<C-^><CR>", opts)
 
 -- Resize with arrows
-keymap("n", "<C-Up>", ":resize +2<CR>", opts)
-keymap("n", "<C-Down>", ":resize -2<CR>", opts)
-keymap("n", "<C-Left>", ":vertical resize -2<CR>", opts)
-keymap("n", "<C-Right>", ":vertical resize +2<CR>", opts)
+keymap("n", "<A-Up>", ":resize +2<CR>", opts)
+keymap("n", "<A-Down>", ":resize -2<CR>", opts)
+keymap("n", "<A-Left>", ":vertical resize -2<CR>", opts)
+keymap("n", "<A-Right>", ":vertical resize +2<CR>", opts)
 
 -- Navigate buffers
 keymap("n", "<TAB>", ":bnext<CR>", opts)
@@ -76,21 +76,8 @@ keymap("n", "<leader>fe", "<cmd>Telescope diagnostics<cr>", opts)
 keymap("n", "<leader>wc", "<cmd>lua require('telescope').extensions.git_worktree.create_git_worktree()<CR>", opts)
 keymap("n", "<leader>wl", "<cmd>lua require('telescope').extensions.git_worktree.git_worktrees()<CR>", opts)
 
--- Go
-keymap("n", "<leader>al", ":GoTestFunc<CR>", opts)
-
 -- Terminal
 keymap("n", "<leader>t", ":terminal<CR>", opts)
 
 -- Rest
 keymap("n", "<leader>r", "<cmd> lua require('rest-nvim').run()<CR>", opts)
-
--- Lazy sync
-keymap("n", "<leader>ls", "<cmd> Lazy sync<CR>", opts)
-
-vim.api.nvim_create_autocmd("BufWritePost", {
-    pattern = "*.go",
-    callback = function()
-        vim.cmd("GoImports")
-    end,
-})
