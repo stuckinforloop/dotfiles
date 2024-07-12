@@ -70,7 +70,11 @@ keymap("n", "<leader>ff", "<cmd>Telescope find_files<cr>", opts)
 keymap("n", "<leader>fs", "<cmd>Telescope live_grep<cr>", opts)
 keymap("n", "<leader>fc", "<cmd>Telescope grep_string<cr>", opts)
 keymap("n", "<leader>fe", "<cmd>Telescope diagnostics<cr>", opts)
-keymap("n", "<leader>fe", "<cmd>Telescope diagnostics<cr>", opts)
+keymap("n", "<leader>fb", "<cmd>Telescope buffers<cr>", opts)
+keymap("n", "<leader>gr", "<cmd>Telescope lsp_references<cr>", opts)
+keymap("n", "<leader>gi", "<cmd>Telescope lsp_implementations<cr>", opts)
+keymap("n", "<leader>gd", "<cmd>Telescope lsp_definitions<cr>", opts)
+keymap("n", "<leader>gt", "<cmd>Telescope lsp_type_definitions<cr>", opts)
 
 -- Git Worktree
 keymap("n", "<leader>wc", "<cmd>lua require('telescope').extensions.git_worktree.create_git_worktree()<CR>", opts)
@@ -81,3 +85,5 @@ keymap("n", "<leader>t", ":terminal<CR>", opts)
 
 -- Rest
 keymap("n", "<leader>r", "<cmd> lua require('rest-nvim').run()<CR>", opts)
+
+keymap("n", "<leader>bw", ":exe 'silent !open -a /Applications/Google\\ Chrome.app %'<CR>", opts)
