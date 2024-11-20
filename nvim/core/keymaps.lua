@@ -84,6 +84,12 @@ keymap("n", "<leader>wl", "<cmd>lua require('telescope').extensions.git_worktree
 keymap("n", "<leader>t", ":terminal<CR>", opts)
 
 -- Rest
-keymap("n", "<leader>r", "<cmd> lua require('rest-nvim').run()<CR>", opts)
+-- keymap("n", "<leader>r", "<cmd> lua require('rest-nvim').run()<CR>", opts)
 
 keymap("n", "<leader>bw", ":exe 'silent !open -a /Applications/Google\\ Chrome.app %'<CR>", opts)
+
+keymap("n", "<leader>nu", ":set rnu!<CR>", opts)
+
+-- Notes
+keymap("n", "<leader>nc", "<cmd>ObsidianNew<cr>", opts)
+keymap("n", "<leader>ns", "<cmd>ObsidianSearch<cr>", opts)

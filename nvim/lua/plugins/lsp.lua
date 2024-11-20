@@ -24,16 +24,16 @@ return {
 				gopls = true,
 				lua_ls = true,
 				rust_analyzer = true,
-				-- jsonls = true,
-
-				-- yamlls = true,
-
+				jsonls = true,
+				yamlls = true,
+				ts_ls = true,
+				tflint = true,
+				helm_ls = true,
 				ocamllsp = {
 					manual_install = true,
 					settings = {
 						codelens = { enable = true },
 					},
-
 					filetypes = {
 						"ocaml",
 						"ocaml.interface",
@@ -41,7 +41,6 @@ return {
 						"ocaml.cram",
 					},
 				},
-
 				clangd = {
 					init_options = { clangdFileStatus = true },
 					filetypes = { "c" },
@@ -126,6 +125,16 @@ return {
 						quiet = true,
 					})
 				end,
+			})
+
+			lspconfig.phpactor.setup({
+				cmd = { "phpactor", "language-server" },
+				filetypes = { "php" },
+				root_dir = lspconfig.util.root_pattern("composer.json", ".git", "phpactor.json"),
+				init_options = {
+					["language_server_phpstan.enabled"] = true,
+					["language_server_psalm.enabled"] = false,
+				},
 			})
 		end,
 	},
