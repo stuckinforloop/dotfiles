@@ -1,7 +1,7 @@
 # This file contains fish universal variable definitions.
 # VERSION: 3.0
 SETUVAR --export PYENV_ROOT:/Users/neel/\x2epyenv
-SETUVAR __fish_initialized:3400
+SETUVAR __fish_initialized:3800
 SETUVAR fish_color_autosuggestion:969896
 SETUVAR fish_color_cancel:\x2d\x2dreverse
 SETUVAR fish_color_command:c397d8
@@ -22,7 +22,7 @@ SETUVAR fish_color_option:\x1d
 SETUVAR fish_color_param:7aa6da
 SETUVAR fish_color_quote:b9ca4a
 SETUVAR fish_color_redirection:70c0b1
-SETUVAR fish_color_search_match:bryellow\x1e\x2d\x2dbackground\x3dbrblack
+SETUVAR fish_color_search_match:white\x1e\x2d\x2dbackground\x3dbrblack
 SETUVAR fish_color_selection:white\x1e\x2d\x2dbold\x1e\x2d\x2dbackground\x3dbrblack
 SETUVAR fish_color_status:red
 SETUVAR fish_color_user:brgreen
@@ -42,4 +42,4 @@ SETUVAR fish_pager_color_selected_background:\x2d\x2dbackground\x3dbrblack
 SETUVAR fish_pager_color_selected_completion:\x1d
 SETUVAR fish_pager_color_selected_description:\x1d
 SETUVAR fish_pager_color_selected_prefix:\x1d
-SETUVAR fish_user_paths:/Users/neel/\x2econfig/scripts\x1e/Users/neel/bin\x1e/Users/neel/\x2elocal/bin\x1e/opt/homebrew/sbin\x1e/opt/homebrew/opt/libpq/bin\x1e/usr/local/sfdx/bin\x1e/usr/local/go/bin\x1e/Users/neel/\x2evolta/bin\x1e/Users/neel/\x2ecargo/bin\x1e/opt/homebrew/bin\x1e/Users/neel/go/bin
+SETUVAR fish_user_paths:/Users/stuckinforloop/\x2elocal/bin\x1e/Users/stuckinforloop/\x2eelixir\x2dinstall/installs/elixir/1\x2e17\x2e3\x2dotp\x2d27/bin\x1e/Users/stuckinforloop/\x2eelixir\x2dinstall/installs/otp/27\x2e1\x2e2/erts\x2d15\x2e1\x2e2/bin\x1e/Users/stuckinforloop/\x2eg/bin\x1e/Users/stuckinforloop/\x2egvm/bin\x1e/Users/stuckinforloop/\x2egvm\x1e/Users/neel/\x2econfig/scripts\x1e/Users/neel/bin\x1e/Users/neel/\x2elocal/bin\x1e/opt/homebrew/sbin\x1e/opt/homebrew/opt/libpq/bin\x1e/usr/local/sfdx/bin\x1e/usr/local/go/bin\x1e/Users/neel/\x2evolta/bin\x1e/Users/neel/\x2ecargo/bin\x1e/opt/homebrew/bin\x1e/Users/neel/go/bin
