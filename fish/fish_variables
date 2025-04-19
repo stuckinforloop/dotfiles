@@ -1,7 +1,9 @@
 # This file contains fish universal variable definitions.
 # VERSION: 3.0
+SETUVAR --export GOBIN:/Users/neel\x2emodi/go/bin
+SETUVAR --export --path PATH:/opt/homebrew/opt/php\x408\x2e1/sbin\x1e/opt/homebrew/opt/php\x408\x2e1/bin\x1e/opt/homebrew/opt/php\x408\x2e2/sbin\x1e/opt/homebrew/opt/php\x408\x2e2/bin\x1e/Users/neel/\x2econfig/scripts\x1e/Users/neel/bin\x1e/Users/neel/\x2elocal/bin\x1e/opt/homebrew/sbin\x1e/opt/homebrew/opt/libpq/bin\x1e/usr/local/sfdx/bin\x1e/usr/local/go/bin\x1e/Users/neel/\x2evolta/bin\x1e/Users/neel/\x2ecargo/bin\x1e/opt/homebrew/bin\x1e/Users/neel/go/bin\x1e/Users/neel\x2emodi/\x2elocal/share/nvim/mason/bin\x1e/Users/neel\x2emodi/\x2eg/go/bin\x1e/usr/local/bin\x1e/System/Cryptexes/App/usr/bin\x1e/usr/bin\x1e/bin\x1e/usr/sbin\x1e/sbin\x1e/var/run/com\x2eapple\x2esecurity\x2ecryptexd/codex\x2esystem/bootstrap/usr/local/bin\x1e/var/run/com\x2eapple\x2esecurity\x2ecryptexd/codex\x2esystem/bootstrap/usr/bin\x1e/var/run/com\x2eapple\x2esecurity\x2ecryptexd/codex\x2esystem/bootstrap/usr/appleinternal/bin\x1e/usr/local/sbin\x1e/Users/neel\x2emodi/\x2eg/go/bin\x1e/Users/neel\x2emodi/\x2ecargo/bin\x1e/Applications/neel_kitty\x2eapp/Contents/MacOS\x1e/Users/neel\x2emodi/go/bin\x1e/Users/neel\x2emodi/Library/Python/3\x2e9/bin\x1e/Users/neel\x2emodi/\x2eorbstack/bin\x1e/Users/neel\x2emodi/\x2econfig/scripts\x1e/Users/neel\x2emodi/\x2edevstack/bin\x1e/Users/neel\x2emodi/\x2evolta/bin\x1e/opt/homebrew/opt/php\x408\x2e1/bin\x1e/opt/homebrew/opt/php\x408\x2e1/sbin\x1e/Users/neel\x2emodi/Library/Python/3\x2e9/bin\x1e/Users/neel\x2emodi/\x2eorbstack/bin\x1e/Users/neel\x2emodi/\x2econfig/scripts\x1e/Users/neel\x2emodi/\x2edevstack/bin\x1e/Users/neel\x2emodi/\x2evolta/bin\x1e/Users/neel\x2emodi/go/bin/darwin_amd64
 SETUVAR --export PYENV_ROOT:/Users/neel/\x2epyenv
-SETUVAR __fish_initialized:3400
+SETUVAR __fish_initialized:3800
 SETUVAR fish_color_autosuggestion:969896
 SETUVAR fish_color_cancel:\x2d\x2dreverse
 SETUVAR fish_color_command:c397d8
@@ -22,7 +24,7 @@ SETUVAR fish_color_option:\x1d
 SETUVAR fish_color_param:7aa6da
 SETUVAR fish_color_quote:b9ca4a
 SETUVAR fish_color_redirection:70c0b1
-SETUVAR fish_color_search_match:bryellow\x1e\x2d\x2dbackground\x3dbrblack
+SETUVAR fish_color_search_match:white\x1e\x2d\x2dbackground\x3dbrblack
 SETUVAR fish_color_selection:white\x1e\x2d\x2dbold\x1e\x2d\x2dbackground\x3dbrblack
 SETUVAR fish_color_status:red
 SETUVAR fish_color_user:brgreen
@@ -42,4 +44,4 @@ SETUVAR fish_pager_color_selected_background:\x2d\x2dbackground\x3dbrblack
 SETUVAR fish_pager_color_selected_completion:\x1d
 SETUVAR fish_pager_color_selected_description:\x1d
 SETUVAR fish_pager_color_selected_prefix:\x1d
-SETUVAR fish_user_paths:/opt/homebrew/opt/php\x408\x2e1/sbin\x1e/opt/homebrew/opt/php\x408\x2e1/bin\x1e/opt/homebrew/opt/php\x408\x2e2/sbin\x1e/opt/homebrew/opt/php\x408\x2e2/bin\x1e/Users/neel/\x2econfig/scripts\x1e/Users/neel/bin\x1e/Users/neel/\x2elocal/bin\x1e/opt/homebrew/sbin\x1e/opt/homebrew/opt/libpq/bin\x1e/usr/local/sfdx/bin\x1e/usr/local/go/bin\x1e/Users/neel/\x2evolta/bin\x1e/Users/neel/\x2ecargo/bin\x1e/opt/homebrew/bin\x1e/Users/neel/go/bin
+SETUVAR fish_user_paths:/Users/neel\x2emodi/go/bin\x1e/opt/homebrew/opt/php\x408\x2e1/sbin\x1e/opt/homebrew/opt/php\x408\x2e1/bin\x1e/opt/homebrew/opt/php\x408\x2e2/sbin\x1e/opt/homebrew/opt/php\x408\x2e2/bin\x1e/Users/neel/\x2econfig/scripts\x1e/Users/neel/bin\x1e/Users/neel/\x2elocal/bin\x1e/opt/homebrew/sbin\x1e/opt/homebrew/opt/libpq/bin\x1e/usr/local/sfdx/bin\x1e/usr/local/go/bin\x1e/Users/neel/\x2evolta/bin\x1e/Users/neel/\x2ecargo/bin\x1e/opt/homebrew/bin\x1e/Users/neel/go/bin

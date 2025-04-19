@@ -21,6 +21,10 @@ return {
 				name = "work",
 				path = "/Users/neel.modi/Documents/ironkeep",
 			},
+			{
+				name = "personal",
+				path = "/Users/neel.modi/Library/Mobile Documents/iCloud~md~obsidian/Documents/vault",
+			},
 		},
 	},
 	config = function(_, opts)

@@ -45,6 +45,7 @@ return {
 					init_options = { clangdFileStatus = true },
 					filetypes = { "c" },
 				},
+				protols = true,
 			}
 
 			local servers_to_install = vim.tbl_filter(function(key)
@@ -109,6 +110,7 @@ return {
 				formatters_by_ft = {
 					lua = { "stylua" },
 					go = { "gofumpt" },
+					proto = { "buf" },
 				},
 				format_on_save = {
 					lsp_fallback = true,
