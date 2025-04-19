@@ -1,32 +1,29 @@
---[[
--- Setup initial configuration,
---
--- Primarily just download and execute lazy.nvim
---]]
-vim.g.mapleader = "<space>"
+require("core")
+-- require("options")
+-- require("keymaps")
+-- require("autocmds")
+-- require("plugins")
 
-local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not vim.uv.fs_stat(lazypath) then
-	vim.fn.system({
-		"git",
-		"clone",
-		"--filter=blob:none",
-		"https://github.com/folke/lazy.nvim.git",
-		"--branch=stable",
-		lazypath,
-	})
-end
+vim.lsp.enable({ "lua_ls", "gopls" })
 
--- Add lazy to the `runtimepath`, this allows us to `require` it.
----@diagnostic disable-next-line: undefined-field
-vim.opt.rtp:prepend(lazypath)
+vim.api.nvim_create_autocmd('LspAttach', {
+  callback = function(ev)
+    local client = vim.lsp.get_client_by_id(ev.data.client_id)
+    if client:supports_method('textDocument/completion') then
+      vim.lsp.completion.enable(true, client.id, ev.buf, { autotrigger = true })
+    end
+  end,
+})
 
-vim.cmd("luafile ~/.config/nvim/core/options.lua")
-vim.cmd("luafile ~/.config/nvim/core/keymaps.lua")
+vim.cmd("set completeopt+=noselect")
 
--- Set up lazy, and load my `lua/plugins/` folder
-require("lazy").setup({ import = "plugins" }, {
-	change_detection = {
-		notify = false,
-	},
+vim.diagnostic.config({
+  -- Use the default configuration
+  virtual_lines = true
+
+  -- Alternatively, customize specific options
+  -- virtual_lines = {
+  --  -- Only show virtual line diagnostics for the current cursor line
+  --  current_line = true,
+  -- },
 })
