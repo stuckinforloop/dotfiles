@@ -1,0 +1,6 @@
+# Fish local/sensitive state
+fish/fish_variables
+fish/secrets.fish
+
+# Tracked template for local secrets
+!fish/secrets.fish.example

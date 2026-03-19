@@ -1,0 +1,9 @@
+# Sensitive or machine-local state
+auth.json
+sessions/
+.extmgr-cache/
+
+# Often contains API keys/tokens; track explicitly only if sanitized
+models.json
+
+.DS_Store
