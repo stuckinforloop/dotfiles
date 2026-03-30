@@ -1,7 +1,7 @@
 {
-  "lastChangelogVersion": "0.60.0",
-  "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.3-codex",
+  "lastChangelogVersion": "0.64.0",
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-sonnet-4-6",
   "defaultThinkingLevel": "medium",
   "compaction": {
     "enabled": false
@@ -10,6 +10,7 @@
   "hideThinkingBlock": true,
   "treeFilterMode": "default",
   "packages": [],
-  "theme": "solarized-osaka",
-  "quietStartup": true
+  "theme": "dark",
+  "quietStartup": true,
+  "collapseChangelog": true
 }
