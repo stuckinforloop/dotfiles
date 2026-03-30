@@ -13,6 +13,7 @@
 	user = stuckinforloop
 [init]
 	defaultBranch = master
+	templateDir = ~/.git-templates
 [core]
 	editor = nvim
 	excludesfile = ~/.config/git/ignore
