@@ -1,5 +1,9 @@
 set fish_greeting ""
 
+if status is-interactive
+    bind \ck 'commandline -r "worktree"; commandline -f execute'
+end
+
 # aliases
 alias ls "eza -l --git"
 alias ll "ls"
@@ -7,6 +11,8 @@ alias ta "tmux at"
 alias vim "nvim"
 alias vi "nvim"
 alias codex "codex --dangerously-bypass-approvals-and-sandbox"
+alias helmfile "helmfile --enable-live-output -b werf"
+alias ca "claude --dangerously-skip-permissions"
 
 # env vars
 set -gx XDG_CONFIG_HOME "$HOME/.config"
