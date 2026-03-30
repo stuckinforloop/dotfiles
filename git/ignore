@@ -10,3 +10,6 @@ Thumbs.db
 # Log/Env files
 *.log
 .env
+
+# Claude agent settings (per-project local overrides)
+**/.claude/settings.local.json
