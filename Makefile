@@ -5,9 +5,9 @@ DOTFILES_DIR ?= $(HOME)/.config/dotfiles
 STOW_TARGET ?= $(HOME)/.config
 STOW_PACKAGES ?= .
 STOW_FLAGS ?= --ignore='^Makefile$$' --ignore='^\.DS_Store$$' --ignore='^AGENTS.md'
-DEVBOX_REPO ?= git@github.com:stuckinforloop/devbox.git
+DEVBOX_REPO ?= git@github.com:stuckinforloop/devbox-work.git
 REPO_URL ?= https://github.com/stuckinforloop/dotfiles.git
-BRANCH ?= master
+BRANCH ?= work
 
 help:
 	@echo "Targets:"
