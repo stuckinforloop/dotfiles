@@ -18,6 +18,13 @@ alias ca "claude --dangerously-skip-permissions"
 set -gx XDG_CONFIG_HOME "$HOME/.config"
 set -gx EDITOR "nvim"
 set -gx PI_CODING_AGENT_DIR "$HOME/.config/pi/agent"
+set -gx SSH_AUTH_SOCK "$HOME/.1password/agent.sock"
+
+set -gx SSL_CERT_FILE "$HOME/.local/share/ca-certs/combined_ca_bundle.pem"
+set -gx CURL_CA_BUNDLE "$HOME/.local/share/ca-certs/combined_ca_bundle.pem"
+set -gx REQUESTS_CA_BUNDLE "$HOME/.local/share/ca-certs/combined_ca_bundle.pem"
+set -gx NODE_EXTRA_CA_CERTS "$HOME/.local/share/ca-certs/combined_ca_bundle.pem"
+
 
 # sensitive env vars
 if test -f "$HOME/.config/fish/secrets.fish"

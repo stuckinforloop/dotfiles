@@ -40,32 +40,5 @@ function fish_prompt
     echo -n -s $error_color $prompt_string $normal_color
   end
 
-  if git_is_repo
-    if test "$theme_short_path" = 'yes'
-      set root_folder (command git rev-parse --show-toplevel 2> /dev/null)
-      set parent_root_folder (dirname $root_folder)
-      set cwd (echo $PWD | sed -e "s|$parent_root_folder/||")
-    end
-
-    echo -n -s " " $directory_color $cwd $normal_color
-    echo -n -s " on " $repository_color (git_branch_name) $normal_color " "
-
-
-    set -l list
-    if test "$theme_stash_indicator" = yes; and git_is_stashed
-      set list $list $stash
-    end
-    if git_is_touched
-      set list $list $dirty
-    end
-    echo -n $list
-
-    if test -z "$list"
-      echo -n -s (git_ahead $ahead $behind $diverged $none)
-    end
-  else
-    echo -n -s " " $directory_color $cwd $normal_color
-  end
-
   echo -n -s " "
 end

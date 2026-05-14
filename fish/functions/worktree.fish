@@ -40,8 +40,7 @@ function worktree
         return 1
     end
 
-    set target_dir "$HOME/dev"
-    set repo_root "$target_dir/$repo_name"
+    set repo_root (pwd)/$repo_name
 
     mkdir -p $repo_root
     cd $repo_root
@@ -102,13 +101,10 @@ function worktree
         end
     end
 
-    # Add AGENTS.md and CLAUDE.md symlink to repo root
-    cp "$HOME/.config/templates/AGENTS_WORKTREE.md" "$repo_root/AGENTS.md"
-    ln -sf AGENTS.md "$repo_root/CLAUDE.md"
-
     echo ""
     echo "Repository cloned in $repo_root"
     echo "Default branch: $default_branch"
 
-    cd "$repo_root/$default_branch"
+    cd $repo_root
+    return 0
 end

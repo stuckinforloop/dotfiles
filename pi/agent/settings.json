@@ -1,7 +1,7 @@
 {
-  "lastChangelogVersion": "0.64.0",
-  "defaultProvider": "anthropic",
-  "defaultModel": "claude-sonnet-4-6",
+  "lastChangelogVersion": "0.73.0",
+  "defaultProvider": "litellm",
+  "defaultModel": "gpt-5.4",
   "defaultThinkingLevel": "medium",
   "compaction": {
     "enabled": false
@@ -9,8 +9,11 @@
   "transport": "auto",
   "hideThinkingBlock": true,
   "treeFilterMode": "default",
-  "packages": [],
-  "theme": "dark",
+  "packages": [
+    "npm:pi-subagents",
+    "npm:pi-web-access"
+  ],
+  "theme": "vitesse",
   "quietStartup": true,
   "collapseChangelog": true
 }
