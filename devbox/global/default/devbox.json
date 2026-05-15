@@ -1,0 +1,36 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.17.2/.schema/devbox.schema.json",
+  "packages": [
+    "neovim@latest",
+    "tmux@latest",
+    "zoxide@latest",
+    "eza@latest",
+    "ripgrep@latest",
+    "jq@latest",
+    "gh@latest",
+    "go@latest",
+    "nodejs@latest",
+    "uv@latest",
+    "bun@latest",
+    "fd@latest",
+    "ghostty-bin@latest",
+    "vscode@latest",
+    "zig@latest",
+    "obsidian@latest",
+    "stow@latest",
+    "stylua@latest",
+    "kubernetes-helm@latest",
+    "kubectl@latest",
+    "helmfile@latest",
+    "kubelogin@latest",
+    "devspace@latest",
+    "werf@2.63.1",
+    "bat@latest"
+  ],
+  "shell": {
+    "init_hook": ["~/.config/scripts/devbox_app_aliases"],
+    "scripts": {
+      "test": ["echo \"Error: no test specified\" && exit 1"]
+    }
+  }
+}

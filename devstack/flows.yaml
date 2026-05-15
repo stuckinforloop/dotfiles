@@ -1,0 +1,21 @@
+profile:
+    default:
+        values:
+            devstack_label: stuckinforloop
+            ttl: 1h
+services:
+    - name: pg-router
+      templateRef:
+        source: remote
+        version: latest
+      values:
+        ephemeral_db: false
+        image: ""
+    - name: api
+      templateRef:
+        source: remote
+        version: latest
+      values:
+        ephemeral_db: false
+        ephemeral_queues: false
+        image: ""

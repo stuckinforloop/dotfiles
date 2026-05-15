@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+makealias() {
+    local aliasdir="$1"
+    local apppath="$2"
+    local app
+    app=$(basename "$apppath" .app)
+    osascript \
+        -e "tell application \"Finder\" to make new alias at (POSIX file \"$aliasdir\") to (POSIX file \"$apppath\")" \
+        -e "set name of result to \"$app\""
+}
+
+readalias() {
+    local aliaspath="$1"
+    osascript \
+        -e "set toPath to \"\"" \
+        -e "tell application \"Finder\"" \
+        -e "set toPath to (POSIX file \"$aliaspath\") as alias" \
+        -e "set theKind to kind of toPath" \
+        -e "if theKind is \"Alias\" then" \
+        -e "set toPath to ((original item of toPath) as alias)" \
+        -e "end if" \
+        -e "end tell" \
+        -e "return posix path of (toPath)"
+}
+
+linksdir="$(devbox global path)/.devbox/nix/profile/default/Applications"
+aliasesdir="$HOME/Applications/Nix Apps"
+
+apps=()
+mkdir -p "$aliasesdir"
+
+while IFS= read -r link; do
+    apppath=$(realpath "$link")
+    appname=$(basename "$apppath")
+    apps+=("$(echo "$appname" | tr '[:upper:]' '[:lower:]')")
+    aliaspath="$aliasesdir/$(basename "$appname" .app)"
+
+    if [ ! -e "$aliaspath" ]; then
+        echo "creating alias for $appname"
+        makealias "$aliasesdir" "$apppath"
+    elif [ "$apppath" != "$(realpath "$(readalias "$aliaspath")")" ]; then
+        echo "updating alias for $appname"
+        rm "$aliaspath"
+        sleep 1
+        makealias "$aliasesdir" "$apppath"
+    fi
+done < <(find -L "$linksdir" -maxdepth 1 -name '*.app')
+
+if [ ${#apps[@]} -eq 0 ]; then
+    echo "no apps found, skipping cleanup"
+    exit 0
+fi
+
+while IFS= read -r alias; do
+    if [[ ! " ${apps[*]} " =~ " $(echo "$alias.app" | tr '[:upper:]' '[:lower:]') " ]]; then
+        echo "removing $aliasesdir/$alias"
+        rm "$aliasesdir/$alias"
+    fi
+done < <(/bin/ls "$aliasesdir")

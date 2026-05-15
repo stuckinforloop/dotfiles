@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# gotools - Install or update recommended Go development tools
+
+set -euo pipefail
+
+tools=(
+    "github.com/klauspost/asmfmt/cmd/asmfmt@latest"
+    "github.com/go-delve/delve/cmd/dlv@latest"
+    "github.com/kisielk/errcheck@latest"
+    "github.com/davidrjenni/reftools/cmd/fillstruct@master"
+    "github.com/rogpeppe/godef@latest"
+    "golang.org/x/tools/cmd/goimports@master"
+    "github.com/mgechev/revive@latest"
+    "golang.org/x/tools/gopls@latest"
+    "honnef.co/go/tools/cmd/staticcheck@latest"
+    "github.com/fatih/gomodifytags@latest"
+    "github.com/jstemmer/gotags@master"
+    "github.com/josharian/impl@main"
+    "github.com/fatih/motion@latest"
+    "github.com/koron/iferr@master"
+)
+
+log() { echo "  $*"; }
+err() { echo "error: $*" >&2; }
+
+if ! command -v go &>/dev/null; then
+    err "go not found in PATH"
+    exit 1
+fi
+
+echo "installing Go tools (${#tools[@]} total)..."
+echo ""
+
+for tool in "${tools[@]}"; do
+    package_path="${tool%@*}"
+    binary_name="$(basename "$package_path")"
+
+    if command -v "$binary_name" &>/dev/null; then
+        log "updating  $binary_name  ($tool)"
+    else
+        log "installing $binary_name  ($tool)"
+    fi
+
+    GO111MODULE=on go install "$tool"
+done
+
+echo ""
+echo "done. ensure \$HOME/go/bin is in your PATH."

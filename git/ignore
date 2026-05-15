@@ -1,0 +1,22 @@
+# os files
+.DS_Store
+Thumbs.db
+
+# ide/editor files
+.vscode/
+.idea/
+*.swp
+
+# log/env files
+*.log
+.env
+
+# claude local user settings (per-project local overrides)
+**/.claude/settings.local.json
+
+# devbox project configs (except tracked dotfiles copy)
+**/devbox.json
+**/devbox.lock
+!devbox/global/default/devbox.json
+!devbox/global/default/devbox.lock
+

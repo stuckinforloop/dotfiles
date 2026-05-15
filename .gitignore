@@ -1,0 +1,12 @@
+# fish
+fish/secrets.fish
+fish/fish_variables
+
+# GitHub CLI auth
+gh/hosts.yml
+
+# pi agent sensitive or machine-local state
+pi/agent/auth.json
+pi/agent/sessions/
+pi/agent/.extmgr-cache/
+pi/agent/models.json

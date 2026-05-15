@@ -1,0 +1,190 @@
+#!/usr/bin/env bash
+# worktree - Clone a repo as a bare repository and set it up for git worktrees
+#
+# Supports three input formats:
+#   git@github.com:owner/repo.git     SSH
+#   https://github.com/owner/repo.git HTTPS
+#   owner/repo                        Shorthand (assumes GitHub SSH)
+#
+# After cloning, creates the following structure:
+#   <repo>/
+#     .bare/    <- git internals
+#     .git      <- file pointing at .bare
+#     <HEAD>/   <- worktree on the remote's default branch
+#     work/     <- directory; add worktrees here for active development
+#     review/   <- directory; add worktrees here for code review
+#     scratch/  <- directory; add worktrees here for quick one-offs
+
+set -euo pipefail
+
+usage() {
+    cat <<EOF
+Usage: worktree <repo> [name]
+
+Arguments:
+  repo    Repository to clone. Accepted formats:
+            git@github.com:owner/repo.git   SSH
+            https://github.com/owner/repo   HTTPS
+            owner/repo                      Shorthand (assumes GitHub SSH)
+
+  name    Optional. Directory name to clone into.
+          Defaults to the repo name derived from the URL.
+
+Examples:
+  worktree git@github.com:stuckinforloop/dotfiles.git
+  worktree https://github.com/stuckinforloop/dotfiles.git
+  worktree stuckinforloop/dotfiles
+  worktree stuckinforloop/dotfiles my-dotfiles
+EOF
+}
+
+log()  { echo "  $*"; }
+info() { echo "$*"; }
+err()  { echo "error: $*" >&2; }
+
+# Parse a repo argument into a clone URL and a repo name.
+# Sets globals: CLONE_URL, REPO_NAME
+parse_repo() {
+    local input="$1"
+
+    if [[ "$input" =~ ^git@ ]]; then
+        # SSH format: git@github.com:owner/repo.git
+        CLONE_URL="$input"
+        local basename="${input##*/}"
+        REPO_NAME="${basename%.git}"
+
+    elif [[ "$input" =~ ^https?:// ]]; then
+        # HTTPS format: https://github.com/owner/repo[.git]
+        CLONE_URL="$input"
+        local basename="${input##*/}"
+        REPO_NAME="${basename%.git}"
+
+    elif [[ "$input" =~ ^[^/]+/[^/]+$ ]]; then
+        # Shorthand format: owner/repo — always assumes GitHub SSH
+        local owner="${input%%/*}"
+        local repo="${input##*/}"
+        REPO_NAME="${repo%.git}"
+        CLONE_URL="git@github.com:${owner}/${REPO_NAME}.git"
+
+    else
+        err "unrecognised repo format: $input"
+        echo "Run 'worktree --help' for usage." >&2
+        exit 1
+    fi
+}
+
+# Ask the remote what its default branch is.
+# Requires `git fetch origin` and `git remote set-head origin --auto` to have
+# already been called so that refs/remotes/origin/HEAD is populated.
+get_default_branch() {
+    git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null \
+        | sed 's|refs/remotes/origin/||' \
+        || true
+}
+
+# Add a worktree checked out to a local branch tracking origin/<branch>.
+add_branch_worktree() {
+    local root="$1"
+    local branch="$2"
+
+    if git worktree add "$root/$branch" "$branch" 2>/dev/null; then
+        log "worktree: $branch/ (branch)"
+        return 0
+    fi
+    return 1
+}
+
+# Create a plain directory to act as a namespace for activity-based worktrees.
+# e.g. work/my-feature, review/pr-123, scratch/quick-fix
+add_activity_dir() {
+    local root="$1"
+    local name="$2"
+
+    mkdir "$root/$name"
+    log "mkdir:    $name/"
+}
+
+clone_for_worktrees() {
+    local clone_url="$1"
+    local target_dir="$2"
+    local root
+
+    info "cloning: $clone_url"
+    info "     to: $(pwd)/$target_dir"
+    echo ""
+
+    mkdir "$target_dir"
+    cd "$target_dir"
+    root="$(pwd)"
+
+    # Clone as a bare repo into .bare; worktrees sit alongside it as siblings.
+    #
+    # Target structure:
+    #   <target_dir>/
+    #     .bare/    <- git internals (what .git/ normally contains)
+    #     .git      <- file pointer so git commands work from the root
+    #     <HEAD>/   <- worktree on the remote default branch
+    #     work/     <- plain dir, namespace for active development worktrees
+    #     review/   <- plain dir, namespace for code review worktrees
+    #     scratch/  <- plain dir, namespace for quick one-off worktrees
+    git clone --bare "$clone_url" .bare
+    echo "gitdir: ./.bare" > .git
+
+    # Bare clones don't configure remote-tracking refs, which means plain
+    # `git fetch` and `git worktree add <remote-branch>` won't work.
+    # Set the fetch refspec explicitly to fix this.
+    git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+
+    info "fetching remote branches..."
+    git fetch origin 2>/dev/null
+
+    # Resolve the remote's actual default branch (main, master, trunk, etc.)
+    # rather than guessing. --auto makes one extra network round-trip to ask
+    # the remote directly, then writes refs/remotes/origin/HEAD locally.
+    git remote set-head origin --auto
+    local default_branch
+    default_branch="$(get_default_branch)"
+
+    echo ""
+    info "scaffolding worktrees..."
+
+    # 1. Default branch worktree — the one true reference copy.
+    if [[ -n "$default_branch" ]]; then
+        add_branch_worktree "$root" "$default_branch"
+    else
+        log "worktree: default branch could not be determined, skipping"
+        default_branch="HEAD"
+    fi
+
+    # 2. Activity directories — plain directories acting as namespaces so you
+    #    can run multiple worktrees per activity in parallel.
+    #    e.g. git worktree add work/my-feature, review/pr-123, scratch/quick-fix
+    for name in work review scratch; do
+        add_activity_dir "$root" "$name"
+    done
+
+    echo ""
+    info "done. cd into $root to get started."
+    echo ""
+    info "structure:"
+    git worktree list
+}
+
+if [[ $# -eq 0 || "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    usage
+    exit 0
+fi
+
+CLONE_URL=""
+REPO_NAME=""
+parse_repo "$1"
+
+# Allow an explicit directory name as the second argument.
+TARGET_DIR="${2:-$REPO_NAME}"
+
+if [[ -e "$TARGET_DIR" ]]; then
+    err "'$TARGET_DIR' already exists in $(pwd)"
+    exit 1
+fi
+
+clone_for_worktrees "$CLONE_URL" "$TARGET_DIR"

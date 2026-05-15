@@ -1,0 +1,48 @@
+[user]
+	name = stuckinforloop
+	email = device.neel@gmail.com
+	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPfBJEL3jXncpwUwMX7BAoeLSHDFlKlGUrB/HPCabVgF
+
+[gpg]
+	format = ssh
+
+[gpg "ssh"]
+	program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
+
+[commit]
+	gpgsign = true
+	verbose = true
+
+[github]
+	user = stuckinforloop
+
+[init]
+	defaultBranch = master
+
+[core]
+	editor = nvim
+	excludesFile = ~/.config/git/ignore
+
+[push]
+	default = simple
+	autoSetupRemote = true
+	followTags = true
+
+[pull]
+	rebase = true
+
+[fetch]
+	prune = true
+	pruneTags = true
+
+[rerere]
+	enabled = true
+	autoUpdate = true
+
+[rebase]
+	autoSquash = true
+	autoStash = true
+	updateRefs = true
+
+[url "git@github.com:"]
+	insteadOf = https://github.com/
