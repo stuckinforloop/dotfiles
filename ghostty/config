@@ -1,10 +1,13 @@
 auto-update = check
 auto-update-channel = tip
 
-theme = Jellybeans
+theme = solarized-osaka
+
+background-opacity = 0.9
+background-blur-radius = 20
 
 font-size = 15
-font-family = SFMono Nerd Font
+font-family = Liga SFMono Nerd Font
 
 mouse-hide-while-typing = true
 cursor-style-blink = true

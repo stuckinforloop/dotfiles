@@ -87,11 +87,6 @@ return {
 
 			local ensure_installed = { "lua_ls", "gopls", "rust_analyzer", "ts_ls" }
 
-			require("mason-lspconfig").setup({
-				ensure_installed = ensure_installed,
-				automatic_enable = false,
-			})
-
 			vim.diagnostic.config({
 				underline = true,
 				update_in_insert = false,
@@ -132,8 +127,12 @@ return {
 				server_opts.capabilities = capabilities
 				server_opts.on_attach = on_attach
 				vim.lsp.config(server, server_opts)
-				vim.lsp.enable(server)
 			end
+
+			require("mason-lspconfig").setup({
+				ensure_installed = ensure_installed,
+				automatic_enable = true,
+			})
 		end,
 	},
 }
