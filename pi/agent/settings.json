@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.74.0",
+  "lastChangelogVersion": "0.80.3",
   "compaction": {
     "enabled": false
   },
@@ -7,9 +7,15 @@
   "transport": "auto",
   "quietStartup": true,
   "packages": [
-    "npm:@ff-labs/pi-fff"
+    "npm:@ff-labs/pi-fff",
+    "npm:pi-mcp-adapter"
   ],
-  "defaultProvider": "razorpay-llm",
-  "defaultModel": "gpt-5.4",
-  "defaultThinkingLevel": "high"
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.5",
+  "defaultThinkingLevel": "xhigh",
+  "theme": "solarized-osaka",
+  "collapseChangelog": true,
+  "enableInstallTelemetry": false,
+  "defaultProjectTrust": "always",
+  "treeFilterMode": "default"
 }

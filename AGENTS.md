@@ -16,6 +16,7 @@ Top-level directories are treated as stow packages:
 - `git/`
 - `gh/`
 - `ghostty/`
+- `kitty/`
 - `tmux/`
 - `nvim/`
 - `devstack/` — local devstack config, flows, and helper binaries
@@ -44,13 +45,13 @@ Typical stow command:
 
 ```bash
 cd ~/.config/dotfiles
-stow --target="$HOME/.config" fish git gh ghostty tmux nvim devstack pi
+stow --target="$HOME/.config" fish git gh ghostty kitty tmux nvim devstack pi
 ```
 
 To restow after edits:
 
 ```bash
-stow --restow --target="$HOME/.config" fish git gh ghostty tmux nvim devstack pi
+stow --restow --target="$HOME/.config" fish git gh ghostty kitty tmux nvim devstack pi
 ```
 
 `devbox/` is intentionally not part of the `~/.config` stow target. It tracks Devbox global package files that live under:
@@ -86,6 +87,8 @@ Currently ignored via root `.gitignore`:
 - `pi/agent/sessions/`
 - `pi/agent/.extmgr-cache/`
 - `pi/agent/models.json`
+- `pi/agent/npm/`
+- `pi/agent/trust.json`
 
 If a new config introduces credentials, tokens, session files, or host-specific state, update the root `.gitignore`.
 

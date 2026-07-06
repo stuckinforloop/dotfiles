@@ -10,3 +10,5 @@ pi/agent/auth.json
 pi/agent/sessions/
 pi/agent/.extmgr-cache/
 pi/agent/models.json
+pi/agent/npm/
+pi/agent/trust.json

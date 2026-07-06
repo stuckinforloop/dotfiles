@@ -1,6 +1,6 @@
 # dotfiles
 
-Personal dotfiles for a macOS development setup centered around Fish, Neovim, tmux, Ghostty, GitHub CLI, Devbox, devstack, and the pi coding agent.
+Personal dotfiles for a macOS development setup centered around Fish, Neovim, tmux, Ghostty, Kitty, GitHub CLI, Devbox, devstack, and the pi coding agent.
 
 ## What’s in here
 
@@ -8,6 +8,7 @@ Personal dotfiles for a macOS development setup centered around Fish, Neovim, tm
 - `git/` — Git config and global ignore file
 - `gh/` — GitHub CLI configuration
 - `ghostty/` — terminal configuration
+- `kitty/` — terminal configuration
 - `tmux/` — terminal multiplexer config
 - `nvim/` — Neovim configuration
 - `devstack/` — local devstack config, flows, and helper binaries
@@ -28,6 +29,8 @@ Ignored files include:
 - `pi/agent/sessions/`
 - `pi/agent/.extmgr-cache/`
 - `pi/agent/models.json`
+- `pi/agent/npm/`
+- `pi/agent/trust.json`
 
 ## Fish secrets
 
@@ -65,13 +68,14 @@ From the repo root:
 
 ```bash
 cd ~/.config/dotfiles
-stow --target="$HOME/.config" fish git gh ghostty tmux nvim devstack pi
+stow --target="$HOME/.config" fish git gh ghostty kitty tmux nvim devstack pi
 ```
 
 This will create symlinks like:
 
 - `~/.config/fish -> ~/.config/dotfiles/fish`
 - `~/.config/nvim -> ~/.config/dotfiles/nvim`
+- `~/.config/kitty -> ~/.config/dotfiles/kitty`
 - `~/.config/tmux -> ~/.config/dotfiles/tmux`
 
 To stow only one package:
@@ -83,7 +87,7 @@ stow --target="$HOME/.config" fish
 To restow after changes:
 
 ```bash
-stow --restow --target="$HOME/.config" fish git gh ghostty tmux nvim devstack pi
+stow --restow --target="$HOME/.config" fish git gh ghostty kitty tmux nvim devstack pi
 ```
 
 To remove symlinks managed by stow:
