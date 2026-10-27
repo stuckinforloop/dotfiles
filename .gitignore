@@ -1,0 +1,18 @@
+.DS_Store
+
+# App directories are linked into ~/.config whole, so everything an app writes
+# there lands in this repo. Ignore state and secrets here.
+
+# fish: universal variables + secrets
+fish/fish_variables
+fish/secrets.fish
+
+# gh: allowlist; hosts.yml is login state written by `gh auth login` (token lives in Keychain)
+gh/*
+!gh/config.yml
+
+# pi: allowlist; auth.json, sessions, npm, bin are agent state
+pi/*
+!pi/agent/
+pi/agent/*
+!pi/agent/settings.json

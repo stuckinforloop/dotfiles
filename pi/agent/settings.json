@@ -1,0 +1,29 @@
+{
+  "lastChangelogVersion": "1.4.0",
+  "packages": [
+    "npm:@gotgenes/pi-anthropic-auth"
+  ],
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-opus-5-5",
+  "terminal": {
+    "showTerminalProgress": true
+  },
+  "hideThinkingBlock": true,
+  "markdown": {
+    "mermaid": "streaming"
+  },
+  "collapseChangelog": true,
+  "quietStartup": "header",
+  "enableInstallTelemetry": false,
+  "defaultProjectTrust": "always",
+  "warnings": {
+    "anthropicExtraUsage": false
+  },
+  "tuiMode": "fullscreen",
+  "modelThinkingLevels": {
+    "anthropic/claude-opus-5-5": "medium",
+    "anthropic/claude-fable-5-1": "high",
+    "anthropic/claude-sonnet-5-5": "high"
+  },
+  "deviceId": "311cd662-5b45-42eb-b31d-da38d896eb60"
+}

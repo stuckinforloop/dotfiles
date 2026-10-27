@@ -1,0 +1,12 @@
+# The repo is one stow package targeting ~/.config: each top-level app
+# directory becomes ~/.config/<app>. Everything below is repo plumbing.
+# This file replaces stow's built-in ignore list.
+\.git
+\.gitignore
+\.stow-local-ignore
+\.DS_Store
+^/README\.md
+^/AGENTS\.md
+^/bootstrap\.sh
+# bin/ is its own package, linked into ~/.local/bin
+^/bin
