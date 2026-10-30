@@ -8,5 +8,6 @@
 ^/README\.md
 ^/AGENTS\.md
 ^/bootstrap\.sh
-# bin/ is its own package, linked into ~/.local/bin
+# bin/ and skills/ are their own packages, linked into ~/.local/bin and ~/.agents/skills
 ^/bin
+^/skills

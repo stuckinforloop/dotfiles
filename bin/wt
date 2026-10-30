@@ -1,0 +1,753 @@
+#!/usr/bin/env bash
+# wt - Run coding agents in parallel, one git worktree and one rex tab per task
+#
+# Layout (created by `wt clone`):
+#   <root>/.git      gitdir: ./.bare
+#   <root>/.bare/    shared repository; wt keeps task state in .bare/wt/
+#   <root>/main/     default branch
+#   <root>/<task>/   one worktree per task
+#
+# State:
+#   .bare/wt/tasks/<task>.json    task metadata, written here
+#   .bare/wt/status/<task>.json   agent state, written by the pi extension (pi/agent/extensions/wt)
+#   ~/.local/state/wt/roots       every wt root, for `wt ls --all`
+
+set -euo pipefail
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/wt"
+FETCH_TTL=30   # seconds; parallel `wt new` calls share one fetch
+
+usage() {
+    cat <<EOF
+Usage: wt <command> [options]
+
+Commands:
+  clone <url> [dir]        Clone into the wt layout (dir defaults to the repo name)
+  new <task>               Create worktree <root>/<task> on branch <task>
+  start <task> [prompt]    new + open, without switching to the new tab
+  open <task> [prompt]     Open the task's agent in rex (resuming its pi session),
+                           or focus it if it is already open
+  ls                       List tasks of this repo (all repos outside one)
+  path <task>              Print the task's worktree path
+  rm <task>                Close the task's tab, remove its worktree, and delete its
+                           branch if merged; refuses to lose work
+  drop <task>              Discard the task after confirming: its tab, worktree and
+                           changes, branch and commits, gh stack layer, and the PR
+                           and origin branch if wt created the branch
+
+Task branches:
+  A task reuses a local branch of the same name, tracks origin/<task> if it
+  exists, or branches from --base. With --on, it branches from the parent
+  task and becomes the next layer of the parent's stack (needs gh-stack).
+  Independent tasks get their own rex session; a stacked task opens as a tab
+  in its stack's session.
+
+Options:
+  -b, --base <ref>         Base for a new branch (default: origin's default branch)
+      --on <task>          Stack on another task
+      --branch <name>      Branch name (default: \$WT_BRANCH_PREFIX<task>)
+      --no-fetch           Skip fetching origin
+      --focus              start: switch to the new tab
+  -a, --all                ls: every wt repo
+      --json               ls: print JSON
+  -f, --force              rm: delete the branch even if unmerged
+  -y, --yes                drop: skip the confirmation
+  -n, --dry-run            drop: print what would be discarded
+  -C <dir>                 Run as if started in <dir>
+  -h, --help               Show this help
+
+Examples:
+  wt clone git@github.com:acme/api.git        # ./api/{.bare,main}
+  wt start fix-login "Fix the login redirect loop, see #123"
+  wt start auth-api "Add the auth middleware"
+  wt start auth-ui --on auth-api "Build the login form on the new API"
+  wt ls --all                                 # every task, with agent state
+  wt open fix-login                           # jump to its tab
+  wt rm fix-login                             # after the PR merged
+  wt drop auth-ui                             # abandon it
+EOF
+}
+
+log() { printf '%s\n' "$*" >&2; }
+warn() { printf 'wt: %s\n' "$*" >&2; }
+die() { printf 'wt: %s\n' "$*" >&2; exit 1; }
+
+# --- repository ---------------------------------------------------------
+
+# Sets ROOT, COMMON (.bare) and META (.bare/wt) for the repo containing $1.
+find_root() {
+    local common
+    common=$(git -C "${1:-.}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) ||
+        die "not in a git repository"
+    [[ ${common##*/} == .bare ]] ||
+        die "not a wt repository (expected <root>/.bare); create one with: wt clone <url>"
+    COMMON=$common
+    ROOT=${common%/.bare}
+    META=$COMMON/wt
+}
+
+register_root() {
+    mkdir -p "$STATE_DIR"
+    touch "$STATE_DIR/roots"
+    grep -qxF "$ROOT" "$STATE_DIR/roots" || printf '%s\n' "$ROOT" >>"$STATE_DIR/roots"
+}
+
+has_origin() { git -C "$ROOT" remote get-url origin >/dev/null 2>&1; }
+
+mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1"; }
+
+fetch_fresh() {
+    [[ -f $COMMON/FETCH_HEAD ]] && (($(date +%s) - $(mtime "$COMMON/FETCH_HEAD") < FETCH_TTL))
+}
+
+# Concurrent fetches into one repository fail with "cannot lock ref", so
+# fetches take a lock, and a fetch finished in the last FETCH_TTL seconds is reused.
+LOCK=""
+release_lock() { [[ -z $LOCK ]] || rmdir "$LOCK" 2>/dev/null || true; }
+trap release_lock EXIT
+
+fetch_origin() {
+    [[ -z $NO_FETCH ]] && has_origin || return 0
+    fetch_fresh && return 0
+    mkdir -p "$META"
+    local lock=$META/fetch.lock tries=0
+    until mkdir "$lock" 2>/dev/null; do
+        # A lock older than five minutes belongs to a killed process.
+        if (($(date +%s) - $(mtime "$lock" 2>/dev/null || date +%s) > 300)); then
+            rmdir "$lock" 2>/dev/null || true
+            continue
+        fi
+        ((++tries > 240)) && die "timed out waiting for another fetch ($lock)"
+        sleep 0.5
+    done
+    LOCK=$lock
+    fetch_fresh || { log "Fetching origin..."; git -C "$ROOT" fetch --quiet --prune origin; }
+    release_lock
+    LOCK=""
+}
+
+default_branch() {
+    local ref
+    if ref=$(git -C "$ROOT" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null); then
+        echo "${ref#origin/}"
+        return
+    fi
+    local b
+    for b in main master; do
+        git -C "$ROOT" show-ref --verify --quiet "refs/heads/$b" && { echo "$b"; return; }
+    done
+    die "no default branch found; pass --base"
+}
+
+# --- tasks --------------------------------------------------------------
+
+valid_task() {
+    [[ $1 =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] ||
+        die "task names use letters, digits, '.', '_' and '-', and start with a letter or digit: $1"
+}
+
+task_file() { echo "$META/tasks/$1.json"; }
+
+require_task() {
+    valid_task "$1"
+    [[ -f $(task_file "$1") ]] || die "no task '$1' in $ROOT (see: wt ls)"
+}
+
+meta() { jq -r "$2 // empty" "$(task_file "$1")"; }
+
+# Apply a jq filter to a task's metadata.
+meta_update() {
+    local file tmp
+    file=$(task_file "$1")
+    tmp=$(mktemp "$file.XXXXXX")
+    jq "${@:3}" "$2" "$file" >"$tmp" && mv "$tmp" "$file"
+}
+
+task_names() {
+    local f
+    for f in "$META"/tasks/*.json; do
+        [[ -f $f ]] || continue
+        f=${f##*/}
+        echo "${f%.json}"
+    done
+}
+
+children_of() {
+    local t
+    for t in $(task_names); do
+        [[ $(meta "$t" .parent) == "$1" ]] && echo "$t"
+    done
+    return 0
+}
+
+# The bottom task of a stack owns the stack's rex session.
+stack_root() {
+    local t=$1 parent
+    while parent=$(meta "$t" .parent) && [[ -n $parent && -f $(task_file "$parent") ]]; do
+        t=$parent
+    done
+    echo "$t"
+}
+
+# --- gh stack -----------------------------------------------------------
+
+has_gh_stack() { gh stack --help >/dev/null 2>&1; }
+
+# Prints the stack's branches bottom to top, or nothing if $1 is not in one.
+stack_branches() {
+    (cd "$1" && gh stack view --json 2>/dev/null) | jq -r '.branches[].name' 2>/dev/null || true
+}
+
+# Fail before creating anything when the parent can't take another layer.
+check_stackable() {
+    local parent_path=$1 parent_branch=$2 top
+    has_gh_stack || return 0
+    top=$(stack_branches "$parent_path" | tail -n 1)
+    [[ -z $top || $top == "$parent_branch" ]] ||
+        die "'$parent_branch' is not the top of its stack (top: $top); stack on the top task instead"
+}
+
+stack_link() {
+    local parent_path=$1 parent_branch=$2 branch=$3 trunk=$4 out
+    if ! has_gh_stack; then
+        warn "gh-stack is not installed, so the stack exists only in wt; install it with: gh extension install github/gh-stack"
+        return 0
+    fi
+    if [[ -n $(stack_branches "$parent_path") ]]; then
+        out=$(cd "$parent_path" && gh stack add "$branch" 2>&1) || { warn "gh stack add failed:"; log "$out"; return 0; }
+    else
+        out=$(cd "$parent_path" && gh stack init --base "$trunk" "$parent_branch" "$branch" 2>&1) ||
+            { warn "gh stack init failed:"; log "$out"; return 0; }
+    fi
+    log "Stacked $branch on $parent_branch"
+}
+
+# --- rex ----------------------------------------------------------------
+
+rex_q() { rex --autostart=false "$@" 2>/dev/null; }
+
+window_alive() {
+    [[ -n $1 && -n $2 ]] || return 1
+    rex_q session inspect "$1" --json | jq -e --arg w "$2" 'any(.windows[]; .window_id == $w)' >/dev/null
+}
+
+session_alive() { [[ -n $1 ]] && rex_q session inspect "$1" --json >/dev/null; }
+
+# Needs Remote Control on in Rex.app (Settings > Rex Server), and REX_CLIENT
+# when several apps are connected.
+focus() {
+    local err
+    err=$(rex do session.select session_id="$1" window_id="$2" 2>&1 >/dev/null) ||
+        warn "could not switch Rex to the tab: ${err#Error: }"
+}
+
+# --- commands -----------------------------------------------------------
+
+cmd_clone() {
+    local url=${1:-} dir=${2:-}
+    [[ -n $url ]] || die "usage: wt clone <url> [dir]"
+    dir=${dir:-$(basename "${url%.git}")}
+    [[ ! -e $dir ]] || die "already exists: $dir"
+    mkdir -p "$dir"
+    ROOT=$(cd "$dir" && pwd -P)
+    COMMON=$ROOT/.bare
+    META=$COMMON/wt
+
+    log "Cloning $url into $ROOT/.bare..."
+    git clone --quiet --bare "$url" "$COMMON"
+    printf 'gitdir: ./.bare\n' >"$ROOT/.git"
+    local g=(git -C "$ROOT")
+    # A bare clone sets no fetch refspec, so origin/* would never update.
+    "${g[@]}" config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+    "${g[@]}" config core.logAllRefUpdates true
+    "${g[@]}" config worktree.useRelativePaths true
+    "${g[@]}" config rerere.enabled true
+    "${g[@]}" config remote.pushDefault origin
+    # Task branches have no upstream; the first push creates one.
+    "${g[@]}" config push.autoSetupRemote true
+    "${g[@]}" fetch --quiet --prune origin
+    "${g[@]}" remote set-head origin --auto >/dev/null
+
+    local def b
+    def=$(default_branch)
+    # A bare clone also copies every remote branch to a local branch with no
+    # upstream, frozen at clone time. Tasks would reuse those stale copies.
+    for b in $("${g[@]}" for-each-ref --format='%(refname:short)' refs/heads); do
+        [[ $b == "$def" ]] || "${g[@]}" branch --quiet -D "$b"
+    done
+    "${g[@]}" worktree add --quiet "${def//\//-}" "$def"
+    git -C "$ROOT/${def//\//-}" branch --quiet --set-upstream-to "origin/$def"
+    register_root
+    log "Created $ROOT with $def checked out in $ROOT/${def//\//-}"
+    echo "$ROOT"
+}
+
+cmd_new() {
+    local task=${1:-}
+    [[ -n $task ]] || die "usage: wt new <task> [--base <ref>] [--on <task>]"
+    valid_task "$task"
+    find_root
+    local path=$ROOT/$task
+    [[ ! -e $path ]] || die "already exists: $path"
+    [[ ! -f $(task_file "$task") ]] || die "task '$task' exists without its worktree; remove it with: wt rm $task"
+
+    local branch=${BRANCH:-${WT_BRANCH_PREFIX:-}$task}
+    git check-ref-format --branch "$branch" >/dev/null 2>&1 || die "invalid branch name: $branch"
+
+    local parent_branch="" parent_path="" trunk=""
+    if [[ -n $ON ]]; then
+        [[ -z $BASE ]] || die "--on and --base are exclusive"
+        require_task "$ON"
+        parent_branch=$(meta "$ON" .branch)
+        parent_path=$(meta "$ON" .path)
+        trunk=$(meta "$ON" .trunk)
+        [[ -d $parent_path ]] || die "parent worktree is missing: $parent_path"
+        check_stackable "$parent_path" "$parent_branch"
+    fi
+
+    fetch_origin
+    local g=(git -C "$ROOT") base
+    # A shared fetch can predate a branch someone just pushed; ask for this one.
+    if [[ -z $NO_FETCH ]] && has_origin &&
+        ! "${g[@]}" show-ref --verify --quiet "refs/heads/$branch" &&
+        ! "${g[@]}" show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+        "${g[@]}" fetch --quiet --no-write-fetch-head origin \
+            "+refs/heads/$branch:refs/remotes/origin/$branch" 2>/dev/null || true
+    fi
+    if "${g[@]}" show-ref --verify --quiet "refs/heads/$branch"; then
+        # Fast-forward a local branch without upstream that origin has moved past.
+        if ! "${g[@]}" rev-parse --verify --quiet "$branch@{upstream}" >/dev/null 2>&1 &&
+            "${g[@]}" show-ref --verify --quiet "refs/remotes/origin/$branch" &&
+            "${g[@]}" merge-base --is-ancestor "$branch" "origin/$branch"; then
+            "${g[@]}" update-ref "refs/heads/$branch" "origin/$branch"
+        fi
+        log "Using existing branch $branch"
+        "${g[@]}" worktree add --quiet -- "$path" "$branch"
+        base=$branch
+    elif "${g[@]}" show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+        log "Tracking origin/$branch"
+        "${g[@]}" worktree add --quiet --track -b "$branch" -- "$path" "origin/$branch"
+        base=origin/$branch
+    else
+        if [[ -n $ON ]]; then
+            base=$parent_branch
+        elif [[ -n $BASE ]]; then
+            base=$BASE
+        elif has_origin && "${g[@]}" show-ref --verify --quiet "refs/remotes/origin/$(default_branch)"; then
+            base=origin/$(default_branch)
+        else
+            base=$(default_branch)
+        fi
+        "${g[@]}" rev-parse --verify --quiet "$base^{commit}" >/dev/null || die "base does not resolve to a commit: $base"
+        log "Creating $branch from $base"
+        "${g[@]}" worktree add --quiet --no-track -b "$branch" -- "$path" "$base"
+    fi
+    [[ -n $trunk ]] || trunk=${BASE:-$(default_branch)}
+    trunk=${trunk#origin/}
+
+    mkdir -p "$META/tasks"
+    jq -n --arg task "$task" --arg branch "$branch" --arg path "$path" --arg base "$base" \
+        --arg trunk "$trunk" --arg parent "$ON" --arg prompt "$PROMPT" \
+        --arg pi_session "$(uuidgen | tr '[:upper:]' '[:lower:]')" --arg created "$(date -u +%FT%TZ)" \
+        '{task: $task, branch: $branch, path: $path, base: $base, trunk: $trunk, parent: $parent,
+          prompt: $prompt, pi_session: $pi_session, created: $created, rex: {}}' >"$(task_file "$task")"
+    register_root
+
+    [[ -z $ON ]] || stack_link "$parent_path" "$parent_branch" "$branch" "$trunk"
+    echo "$path"
+}
+
+cmd_open() {
+    local task=${1:-} prompt=${2:-}
+    [[ -n $task ]] || die "usage: wt open <task> [prompt]"
+    find_root
+    require_task "$task"
+    local path session window
+    path=$(meta "$task" .path)
+    [[ -d $path ]] || die "worktree is missing: $path (remove the task with: wt rm $task)"
+    session=$(meta "$task" .rex.session)
+    window=$(meta "$task" .rex.window)
+
+    if window_alive "$session" "$window"; then
+        [[ -z $prompt ]] || warn "the agent is already running; prompt not sent"
+        [[ -z $FOCUS ]] || focus "$session" "$window"
+        log "Open: $task"
+        return
+    fi
+
+    if [[ -n $prompt && -z $(meta "$task" .prompt) ]]; then
+        meta_update "$task" '.prompt = $p' --arg p "$prompt"
+    fi
+    # A fixed pi session id makes reopening a closed tab resume the conversation.
+    local cmd=(pi --session-id "$(meta "$task" .pi_session)" --name "$task")
+    [[ -z $prompt ]] || cmd+=(-- "$prompt")
+
+    local root_task stack_session out
+    root_task=$(stack_root "$task")
+    stack_session=$(meta "$root_task" .rex.session)
+    if [[ $root_task != "$task" ]] && session_alive "$stack_session"; then
+        out=$(rex window new -s "$stack_session" "$task" -c "$path" --json -- "${cmd[@]}")
+        session=$stack_session
+        window=$(jq -r .window_id <<<"$out")
+    else
+        out=$(rex new "$(basename "$ROOT")-$root_task" -c "$path" --window "$task" --json -- "${cmd[@]}")
+        session=$(jq -r .session_id <<<"$out")
+        window=$(jq -r '.initial_windows[0].window_id' <<<"$out")
+        [[ $root_task == "$task" ]] || meta_update "$root_task" '.rex.session = $s | .rex.window = ""' --arg s "$session"
+    fi
+    meta_update "$task" '.rex = {session: $s, window: $w}' --arg s "$session" --arg w "$window"
+    [[ -z $FOCUS ]] || focus "$session" "$window"
+    log "Opened $task in rex ($session)"
+}
+
+cmd_start() {
+    local task=${1:-} prompt=${2:-}
+    [[ -n $task ]] || die "usage: wt start <task> [prompt]"
+    PROMPT=$prompt
+    cmd_new "$task"
+    cmd_open "$task" "$prompt"
+}
+
+cmd_path() {
+    [[ -n ${1:-} ]] || die "usage: wt path <task>"
+    find_root
+    require_task "$1"
+    meta "$1" .path
+}
+
+# One JSON object per task of the repo at $ROOT; $1 lists live "session window" pairs.
+list_root() {
+    local windows=$1 t file status_file dirty state pid open
+    for t in $(task_names); do
+        file=$(task_file "$t")
+        status_file=$META/status/$t.json
+        dirty=null
+        [[ ! -d $(meta "$t" .path) ]] || dirty=$(git -C "$(meta "$t" .path)" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+        open=false
+        grep -qxF "$(meta "$t" .rex.session) $(meta "$t" .rex.window)" <<<"$windows" && open=true
+        state=closed
+        [[ $open == false ]] || state=open
+        if [[ -f $status_file ]]; then
+            pid=$(jq -r '.pid // empty' "$status_file")
+            if [[ -n $pid ]] && kill -0 "$pid" 2>/dev/null; then
+                state=$(jq -r '.state // "open"' "$status_file")
+            fi
+        fi
+        jq -c --arg root "$ROOT" --arg repo "$(basename "$ROOT")" --arg state "$state" \
+            --argjson dirty "$dirty" --argjson open "$open" \
+            --slurpfile status <(cat "$status_file" 2>/dev/null || echo '{}') \
+            '. + {root: $root, repo: $repo, state: $state, changes: $dirty, open: $open,
+                  summary: ($status[0].summary // ""), updated: ($status[0].updated // "")}' "$file"
+    done
+}
+
+cmd_ls() {
+    local roots=() here="" windows s
+    if git rev-parse --git-common-dir 2>/dev/null | grep -q '\.bare$'; then
+        find_root
+        here=$ROOT
+        roots=("$ROOT")
+    fi
+    if [[ -n $ALL || -z $here ]] && [[ -f $STATE_DIR/roots ]]; then
+        while IFS= read -r s; do
+            [[ -d $s/.bare && $s != "$here" ]] && roots+=("$s")
+        done <"$STATE_DIR/roots"
+    fi
+
+    windows=$(for s in $(rex_q ls --json | jq -r '.sessions[].session_id'); do
+        rex_q session inspect "$s" --json | jq -r '.session_id + " " + .windows[].window_id'
+    done)
+
+    local json
+    json=$(for s in ${roots[@]+"${roots[@]}"}; do
+        find_root "$s"
+        list_root "$windows"
+    done | jq -s .)
+
+    if [[ -n $JSON ]]; then
+        echo "$json"
+    elif [[ $json == "[]" ]]; then
+        log "No tasks. Start one with: wt start <task> [prompt]"
+    else
+        jq -r '(["REPO", "TASK", "BRANCH", "ON", "AGENT", "CHANGES", "PROMPT"] | @tsv),
+               (.[] | [.repo, .task, .branch, (.parent // "" | if . == "" then "-" else . end), .state,
+                       (.changes // "missing" | tostring), (.prompt | split("\n")[0] | .[0:60])] | @tsv)' <<<"$json" |
+            column -t -s $'\t'
+    fi
+}
+
+cmd_rm() {
+    local task=${1:-}
+    [[ -n $task ]] || die "usage: wt rm <task> [--force]"
+    find_root
+    require_task "$task"
+    local path branch session window kids
+    path=$(meta "$task" .path)
+    branch=$(meta "$task" .branch)
+    session=$(meta "$task" .rex.session)
+    window=$(meta "$task" .rex.window)
+
+    kids=$(children_of "$task")
+    [[ -z $kids ]] || die "tasks stacked on '$task' need it: $(echo $kids); remove them first"
+
+    # Squash-merged branches look unmerged to git, so ask GitHub first.
+    local pr_state=""
+    if command -v gh >/dev/null; then
+        pr_state=$(cd "$ROOT" && gh pr view "$branch" --json state -q .state 2>/dev/null || true)
+    fi
+
+    # gh-stack keeps a layer until it is dropped, even after its branch is
+    # deleted, and the stale layer blocks new layers on top of the stack.
+    if [[ -d $path && $pr_state != MERGED ]] && has_gh_stack &&
+        stack_branches "$path" | grep -qxF "$branch"; then
+        die "'$branch' is an unmerged layer of a gh stack; to discard it, run: wt drop $task"
+    fi
+
+    if [[ -d $path ]]; then
+        [[ -z $(git -C "$path" status --porcelain) ]] ||
+            die "uncommitted changes in $path; commit or discard them first"
+        git -C "$ROOT" worktree remove -- "$path"
+        log "Removed worktree $path"
+    fi
+
+    if git -C "$ROOT" show-ref --verify --quiet "refs/heads/$branch"; then
+        if [[ -n $FORCE || $pr_state == MERGED ]]; then
+            git -C "$ROOT" branch --quiet -D "$branch" && log "Deleted branch $branch"
+        elif git -C "$ROOT" branch --quiet -d "$branch" 2>/dev/null; then
+            log "Deleted merged branch $branch"
+        else
+            log "Kept branch $branch (not merged${pr_state:+, PR $pr_state}); delete it with: git branch -D $branch"
+        fi
+    fi
+
+    rm -f "$(task_file "$task")" "$META/status/$task.json"
+    log "Removed task $task"
+    close_tab "$session" "$window"
+}
+
+# Callers close the tab last: closing it ends the agent, which may be running wt.
+close_tab() {
+    local session=$1 window=$2
+    if window_alive "$session" "$window"; then
+        rex_q window close -s "$session" "$window" >/dev/null || true
+    fi
+    if session_alive "$session" &&
+        [[ $(rex_q session inspect "$session" --json | jq '.windows | length') == 0 ]]; then
+        rex_q kill "$session" >/dev/null || true
+    fi
+}
+
+# The worktree that has $1 checked out, if any.
+worktree_of() {
+    git -C "$ROOT" worktree list --porcelain |
+        awk -v ref="branch refs/heads/$1" '/^worktree /{path = substr($0, 10)} $0 == ref {print path}'
+}
+
+# Drop $2, the top layer of the gh stack seen from worktree $1, keeping the
+# layers below. gh stack modify does this only interactively, so the stack's
+# tracking is removed and re-created without the layer. A stack linked on
+# GitHub is unstacked there too, and `gh stack submit` links it again.
+drop_stack_layer() {
+    local path=$1 branch=$2 json trunk remaining linked="" b dir
+    json=$(cd "$path" && gh stack view --json 2>/dev/null) || return 0
+    trunk=$(jq -r .trunk <<<"$json")
+    remaining=$(jq -r --arg b "$branch" '.branches[].name | select(. != $b)' <<<"$json")
+    for b in $(jq -r '.branches[].name' <<<"$json"); do
+        if [[ -n $(cd "$ROOT" && gh pr view "$b" --json number -q .number 2>/dev/null) ]]; then
+            linked=1
+            break
+        fi
+    done
+
+    if [[ -n $linked ]]; then
+        (cd "$path" && gh stack unstack </dev/null >/dev/null 2>&1) || die "gh stack unstack failed; run it in $path"
+    else
+        (cd "$path" && gh stack unstack --local </dev/null >/dev/null 2>&1) || die "gh stack unstack --local failed; run it in $path"
+    fi
+    if [[ -z $remaining ]]; then
+        log "Removed its gh stack ($branch was the only layer)"
+        return 0
+    fi
+
+    # init checks out the top branch; run it where that branch is checked out.
+    dir=$(worktree_of "$(tail -n 1 <<<"$remaining")")
+    # shellcheck disable=SC2086 # one branch name per word
+    if ! (cd "${dir:-$path}" && gh stack init --base "$trunk" $remaining </dev/null >/dev/null 2>&1); then
+        warn "could not re-create the stack; run: gh stack init --base $trunk $(echo $remaining)"
+        return 0
+    fi
+    log "Dropped $branch from its stack ($(echo $remaining | tr ' ' ',') remain)"
+    [[ -z $linked ]] || warn "the stack was unstacked on GitHub; link it again with: gh stack submit"
+}
+
+cmd_drop() {
+    local task=${1:-}
+    [[ -n $task ]] || die "usage: wt drop <task> [--yes | --dry-run]"
+    find_root
+    require_task "$task"
+    local path branch base trunk parent session window kids
+    path=$(meta "$task" .path)
+    branch=$(meta "$task" .branch)
+    base=$(meta "$task" .base)
+    trunk=$(meta "$task" .trunk)
+    parent=$(meta "$task" .parent)
+    session=$(meta "$task" .rex.session)
+    window=$(meta "$task" .rex.window)
+
+    kids=$(children_of "$task")
+    [[ -z $kids ]] || die "tasks stacked on '$task' need it: $(echo $kids); drop them first"
+
+    # A branch wt created belongs to the task. A reused or tracked branch
+    # existed before it, so its PR and origin branch stay.
+    local owned=""
+    [[ $base == "$branch" || $base == "origin/$branch" ]] || owned=1
+
+    local changes=0 upstream ahead=0 has_branch="" pr="" on_origin="" keep_origin="" stack=""
+    [[ ! -d $path ]] || changes=$(git -C "$path" status --porcelain | wc -l | tr -d ' ')
+    upstream=origin/$trunk
+    [[ -z $parent || ! -f $(task_file "$parent") ]] || upstream=$(meta "$parent" .branch)
+    if git -C "$ROOT" show-ref --verify --quiet "refs/heads/$branch"; then
+        has_branch=1
+        ahead=$(git -C "$ROOT" rev-list --count "$upstream..$branch" 2>/dev/null || echo 0)
+    fi
+    if [[ -n $owned ]]; then
+        if command -v gh >/dev/null; then
+            pr=$(cd "$ROOT" && gh pr view "$branch" --json number,state -q 'select(.state == "OPEN") | .number' 2>/dev/null || true)
+        fi
+        # Delete origin's branch only if it holds nothing beyond the local
+        # branch, so a same-named branch someone else pushed survives.
+        if has_origin; then
+            git -C "$ROOT" fetch --quiet --no-write-fetch-head origin \
+                "+refs/heads/$branch:refs/remotes/origin/$branch" 2>/dev/null ||
+                git -C "$ROOT" update-ref -d "refs/remotes/origin/$branch" 2>/dev/null || true
+        fi
+        if git -C "$ROOT" show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+            if [[ -n $has_branch ]] && git -C "$ROOT" merge-base --is-ancestor "origin/$branch" "$branch"; then
+                on_origin=1
+            else
+                keep_origin=1
+            fi
+        fi
+    fi
+    if [[ -d $path ]] && has_gh_stack; then
+        stack=$(stack_branches "$path")
+        if grep -qxF "$branch" <<<"$stack"; then
+            [[ $(tail -n 1 <<<"$stack") == "$branch" ]] ||
+                die "'$branch' is not the top of its stack (top: $(tail -n 1 <<<"$stack")); drop the layers above first"
+        else
+            stack=""
+        fi
+    fi
+
+    local plan=()
+    ! window_alive "$session" "$window" || plan+=("close its rex tab, ending the agent")
+    if [[ -d $path ]]; then
+        if ((changes > 0)); then
+            plan+=("delete worktree $path and its $changes uncommitted changes")
+        else
+            plan+=("delete worktree $path")
+        fi
+    fi
+    if [[ -n $has_branch ]]; then
+        if ((ahead > 0)); then
+            plan+=("delete branch $branch and its $ahead commits not on $upstream")
+        else
+            plan+=("delete branch $branch")
+        fi
+    fi
+    if [[ -n $stack ]]; then
+        local keep
+        keep=$(grep -vxF "$branch" <<<"$stack" | paste -sd, - || true)
+        plan+=("drop $branch from its gh stack${keep:+ (keeps $keep)}")
+    fi
+    [[ -z $pr ]] || plan+=("close PR #$pr")
+    [[ -z $on_origin ]] || plan+=("delete origin/$branch")
+    [[ -z $keep_origin ]] || plan+=("keep origin/$branch, which has commits the task's branch lacks")
+
+    if [[ -n $DRY_RUN ]]; then
+        printf '%s\n' ${plan[@]+"${plan[@]}"}
+        return
+    fi
+    if [[ -z $YES ]]; then
+        [[ -t 0 ]] || die "drop discards work, so it needs --yes when not run in a terminal (preview: wt drop $task --dry-run)"
+        log "Dropping $task will:"
+        printf '  %s\n' ${plan[@]+"${plan[@]}"} >&2
+        local answer
+        read -r -p "Drop $task? [y/N] " answer || answer=""
+        [[ $answer == [yY]* ]] || die "cancelled"
+    fi
+
+    [[ -z $stack ]] || drop_stack_layer "$path" "$branch"
+    if [[ -d $path ]]; then
+        git -C "$ROOT" worktree remove --force -- "$path"
+        log "Deleted worktree $path"
+    else
+        git -C "$ROOT" worktree prune
+    fi
+    if [[ -n $has_branch ]]; then
+        git -C "$ROOT" branch --quiet -D "$branch"
+        log "Deleted branch $branch"
+    fi
+    if [[ -n $pr ]]; then
+        (cd "$ROOT" && gh pr close "$pr" --comment "Dropped: the task was discarded." >/dev/null) &&
+            log "Closed PR #$pr" || warn "could not close PR #$pr"
+    fi
+    if [[ -n $on_origin ]]; then
+        git -C "$ROOT" push --quiet origin --delete "$branch" 2>/dev/null &&
+            log "Deleted origin/$branch" || warn "could not delete origin/$branch"
+    fi
+
+    rm -f "$(task_file "$task")" "$META/status/$task.json"
+    log "Dropped task $task"
+    close_tab "$session" "$window"
+}
+
+# --- main ---------------------------------------------------------------
+
+BASE="" ON="" BRANCH="" NO_FETCH="" FOCUS="" ALL="" JSON="" FORCE="" PROMPT="" YES="" DRY_RUN=""
+ARGS=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -b|--base) BASE=${2:?--base needs a ref}; shift 2 ;;
+        --on) ON=${2:?--on needs a task}; shift 2 ;;
+        --branch) BRANCH=${2:?--branch needs a name}; shift 2 ;;
+        --no-fetch) NO_FETCH=1; shift ;;
+        --focus) FOCUS=1; shift ;;
+        -a|--all) ALL=1; shift ;;
+        --json) JSON=1; shift ;;
+        -f|--force) FORCE=1; shift ;;
+        -y|--yes) YES=1; shift ;;
+        -n|--dry-run) DRY_RUN=1; shift ;;
+        -C) cd "${2:?-C needs a directory}"; shift 2 ;;
+        -h|--help) usage; exit 0 ;;
+        --) shift; ARGS+=("$@"); break ;;
+        -*) echo "Unknown option: $1"; usage; exit 1 ;;
+        *) ARGS+=("$1"); shift ;;
+    esac
+done
+set -- ${ARGS[@]+"${ARGS[@]}"}
+
+cmd="${1:-}"
+shift || true
+
+command -v jq >/dev/null || die "jq is required"
+
+case "$cmd" in
+    clone) cmd_clone "$@" ;;
+    new) cmd_new "$@" ;;
+    start) cmd_start "$@" ;;
+    open) FOCUS=1; cmd_open "$@" ;;
+    ls) cmd_ls ;;
+    path) cmd_path "$@" ;;
+    rm) cmd_rm "$@" ;;
+    drop) cmd_drop "$@" ;;
+    "")
+        usage
+        exit 1
+        ;;
+    *)
+        echo "Unknown command: $cmd"
+        usage
+        exit 1
+        ;;
+esac

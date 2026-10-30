@@ -26,7 +26,7 @@ Options:
   -h, --help          Show this help
 
 Packages: $(packages | tr '\n' ' ')
-  <app> -> ~/.config/<app>, bin/* -> ~/.local/bin/*
+  <app> -> ~/.config/<app>, bin/* -> ~/.local/bin/*, skills/* -> ~/.agents/skills/*
 
 Examples:
   bootstrap.sh install          # New machine
@@ -40,7 +40,7 @@ EOF
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 die() { echo "bootstrap: $*" >&2; exit 1; }
 
-# Each top-level directory is a package: an app directory, or bin.
+# Each top-level directory is a package: an app directory, bin, or skills.
 packages() {
     local dir
     for dir in "$DOTFILES"/*/; do basename "$dir"; done
@@ -86,22 +86,30 @@ install_deps() {
 
 # Directories that must stay real. stow links a whole directory when the target
 # doesn't exist yet; these are shared with other apps and installers.
-SHARED_DIRS=("$HOME/.config" "$HOME/.local/bin")
+SHARED_DIRS=("$HOME/.config" "$HOME/.local/bin" "$HOME/.agents/skills")
+
+# Packages with their own target directory; every other package is an app.
+OWN_TARGET_PACKAGES=(bin skills)
 
 # Where a package's files land.
 target_of() {
-    [[ "$1" == bin ]] && echo "$HOME/.local/bin" || echo "$HOME/.config/$1"
+    case "$1" in
+        bin) echo "$HOME/.local/bin" ;;
+        skills) echo "$HOME/.agents/skills" ;;
+        *) echo "$HOME/.config/$1" ;;
+    esac
 }
 
-# Two stow invocations:
+# stow invocations:
 #   - the repo itself is one stow package targeting ~/.config, so each app
 #     directory becomes ~/.config/<app> (.stow-local-ignore skips repo files);
 #     a subset is selected by ignoring the other app directories.
-#   - bin is a normal package targeting ~/.local/bin.
+#   - bin and skills are normal packages targeting their own directories
+#     (~/.local/bin, ~/.agents/skills), which other installers share.
 run_stow() {
     local action="$1"; shift
     command -v stow >/dev/null || die "stow not installed (run: bootstrap.sh deps)"
-    local pkgs pkg p apps=() skip=() flags=() want_bin=""
+    local pkgs pkg p apps=() own=() skip=() flags=()
     pkgs=($(resolve_packages "$@"))
     log "$action: ${pkgs[*]}"
     [[ -n "$DRY_RUN" ]] || mkdir -p "${SHARED_DIRS[@]}"
@@ -113,7 +121,11 @@ run_stow() {
     [[ -n "$DRY_RUN" ]] && flags+=(--simulate --verbose)
 
     for pkg in "${pkgs[@]}"; do
-        [[ "$pkg" == bin ]] && want_bin=1 || apps+=("$pkg")
+        if [[ " ${OWN_TARGET_PACKAGES[*]} " == *" $pkg "* ]]; then
+            own+=("$pkg")
+        else
+            apps+=("$pkg")
+        fi
     done
 
     if [[ ${#apps[@]} -gt 0 ]]; then
@@ -123,9 +135,9 @@ run_stow() {
         stow --dir="$(dirname "$DOTFILES")" --target="$HOME/.config" \
             "${flags[@]}" ${skip[@]+"${skip[@]}"} "$(basename "$DOTFILES")"
     fi
-    if [[ -n "$want_bin" ]]; then
-        stow --dir="$DOTFILES" --target="$HOME/.local/bin" "${flags[@]}" bin
-    fi
+    for pkg in ${own[@]+"${own[@]}"}; do
+        stow --dir="$DOTFILES" --target="$(target_of "$pkg")" "${flags[@]}" "$pkg"
+    done
 }
 
 install_tools() {

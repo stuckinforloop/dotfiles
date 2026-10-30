@@ -1,6 +1,6 @@
 # dotfiles
 
-Each top-level directory is an app's config, linked whole to `~/.config/<app>` by stow (`bin/*` goes to `~/.local/bin`), plus mise for every dev tool. Fish is the only shell this repo supports. `README.md` covers layout and everyday commands.
+Each top-level directory is an app's config, linked whole to `~/.config/<app>` by stow (`bin/*` goes to `~/.local/bin`, `skills/*` to `~/.agents/skills`), plus mise for every dev tool. Fish is the only shell this repo supports. `README.md` covers layout and everyday commands.
 
 ## Startup budget
 
@@ -27,11 +27,11 @@ The design follows from one number: anything that starts the `mise` binary costs
 
 ## Adding a config file
 
-Stow treats the repo itself as one package targeting `~/.config`, so `~/.config/<app>` is a symlink to `<app>/` and every file an app writes there lands in the working tree. Repo files that aren't app config (docs, `bootstrap.sh`, `bin/`) are listed in `.stow-local-ignore`; a new one needs an entry there, or it gets linked into `~/.config`. `.gitignore` is the **boundary** between config and state:
+Stow treats the repo itself as one package targeting `~/.config`, so `~/.config/<app>` is a symlink to `<app>/` and every file an app writes there lands in the working tree. Repo files that aren't app config (docs, `bootstrap.sh`, `bin/`, `skills/`) are listed in `.stow-local-ignore`; a new one needs an entry there, or it gets linked into `~/.config`. `.gitignore` is the **boundary** between config and state:
 
 - `fish`, `git`, `nvim`, `mise`: tracked by default; state files (`fish_variables`, `secrets.fish`) are listed individually.
 - `gh`, `pi`: allowlists (`dir/*` then `!config-file`), because those apps keep logins, sessions and caches next to config. New files there stay ignored automatically.
-- `~/.config` and `~/.local/bin` stay real directories (`bootstrap.sh` creates them before stowing); `bin` scripts get file links.
+- `~/.config`, `~/.local/bin` and `~/.agents/skills` stay real directories (`bootstrap.sh` creates them before stowing); `bin` scripts and `skills` directories get their own links.
 
 **Existing package:** create the file under `~/.config/<app>/`; it is already in the repo.
 

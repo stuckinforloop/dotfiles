@@ -16,3 +16,4 @@ pi/*
 !pi/agent/
 pi/agent/*
 !pi/agent/settings.json
+!pi/agent/extensions/
